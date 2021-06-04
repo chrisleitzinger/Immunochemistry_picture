@@ -1,60 +1,102 @@
+# Library
 library(tidyverse)
 library(imager)
+library(ggpubr)
+library(magick)
 
 hoechst <- load.image("/Users/colinccm/Documents/GitHub/perso repo/Immunochemistry_picture/MCF7 ICC hoechst.png")
 
+plot(hoechst)
+dim(hoechst)
+imager::Cc(hoechst)
 
-# Set up a plot area with no plot
-# plot(1:2, type='n', main="", xlab="x", ylab="y")
+# 1. Split image
+imsplit(hoechst,"x", -700) %>% plot
+split_img <- imsplit(hoechst,"x", -700)
+
+# 2. Store right side
+plot(split_img[2])
+right_side <- split_img[2]
+right_side <- as.imlist(right_side) %>% imappend("x") 
+plot(right_side)
+imager::save.image(right_side, "right_side.jpeg")
+
+# 2. Store left side
+left_side <- split_img[1]
+as.imlist(left_side) %>% imappend("x") %>% plot
+left_side <- as.imlist(left_side) %>% imappend("x") 
+imager::save.image(left_side, "left_side.jpeg")
+
+###################
+
+# 1. Remove the background / need magick object
+# hoechst1 <- image_read("/Users/colinccm/Documents/GitHub/perso repo/Immunochemistry_picture/left_side.jpeg")
+# plot(hoechst1)
 # 
-# # Get the plot information so the image will fill the plot box, and draw it
-# lim <- par()
-# rasterImage(hoechst, 
-#             xleft=1, xright=2, 
-#             ybottom=1.3, ytop=1.7)
-# grid()
+# hoechst1 <- image_fill(hoechst1, "white", point = "+50+50", fuzz = 20)
+# # hoechst1 <- image_transparent(hoechst1, "black", fuzz = 20)
+# plot(hoechst1)
 # 
-# #Add your plot !
-# lines(
-#   x=c(1, 1.2, 1.4, 1.6, 1.8, 2.0), 
-#   y=c(1, 1.3, 1.7, 1.6, 1.7, 1.0), 
-#   type="b", lwd=5, col="black")
+# magick2cimg(hoechst1) %>% plot
+# df <- magick2cimg(hoechst1,alpha="flatten")
+# df1 <- as.data.frame(df)
+# # image_write(hoechst1, "/Users/colinccm/Documents/GitHub/perso repo/Immunochemistry_picture/MCF7 ICC hoechst transparent.png")
+# 
+# df_3 <- df1 %>% filter(cc == 2) %>% # Using channel 2 because removing bg made cells too low on channel 3
+#   filter(value < 0.5) # filter threshold
+# 
+# df_3 %>% 
+#   ggplot(aes(x=x, y=y, color = value)) +
+#   geom_point(size = 0.3, aes(alpha = value)) +
+#   scale_y_reverse() + 
+#   theme_void() +
+#   theme(legend.position = "none")
+# dev.copy(png,'myplot1.png')
+# dev.off()
 
-df <- as.data.frame(hoechst) # give the pixel location and value for each channel
-df_3 <- df %>% filter(cc == 3) %>% # filter blue
-  filter(value > 0.5) # remove bg
+###################
 
-p <- df_3 %>% 
+# 2. Get coordinate
+df <- as.data.frame(hoechst)
+df_2 <- df %>% filter(cc == 3) %>%
+  filter(value > 0.1) # filter threshold
+
+df_2 %>% 
   ggplot(aes(x=x, y=y, color = value)) +
   geom_point(size = 0.3, aes(alpha = value)) +
-  theme_classic()
-p + annotation_raster(hoechst, ymin = 0,ymax= 500,xmin = 0,xmax = 500) + 
-  geom_point()
+  scale_y_reverse() + 
+  theme_void() +
+  theme(legend.position = "none")
 
-library(ggplot2)
-library(magick)
-library(here) # For making the script run without a wd
-library(magrittr) # For piping the logo
+dev.copy(png,'new_left.png')
+dev.off()
 
-# Make a simple plot and save it
-df_3 %>% 
-  ggplot(aes(x=x, y=y, color = value)) +
-  background_image(hoechst)+
-  geom_point(size = 0.3, aes(alpha = value)) +
-  theme_classic()
+hoechst <- load.image("/Users/colinccm/Documents/GitHub/perso repo/Immunochemistry_picture/new_left.png")
+plot(new_left)
 
-# Call back the plot
-# Now call back the plot
-background <- image_read("/Users/colinccm/Documents/GitHub/perso repo/Immunochemistry_picture/cells_plot.png")
-# And bring in a logo
-logo_raw <- image_read("/Users/colinccm/Documents/GitHub/perso repo/Immunochemistry_picture/MCF7 ICC hoechst.png") 
+new_left <- as.cimg(df_3)
 
-frames <- lapply(logo_raw, function(frame) {
-  image_composite(background, frame)
-})
+imsplit(new_left,"x", -700) %>% plot
+
+split_img <- imsplit(hoechst,"x", -700)
+
+left_side <- split_img[1]
+as.imlist(left_side) %>% imappend("x") %>% plot
+left_side <- as.imlist(left_side) %>% imappend("x") 
+imager::save.image(left_side, "left_side.jpeg")
 
 
-a <- image_join(frames)
-plot(a)
 
+# 3. Append
+knitr::plot_crop("/Users/colinccm/Documents/GitHub/perso repo/Immunochemistry_picture/myplot.png")
+logo <- image_read("/Users/colinccm/Documents/GitHub/perso repo/Immunochemistry_picture/myplot.png")
+logo1 <- image_read("/Users/colinccm/Documents/GitHub/perso repo/Immunochemistry_picture/right_side.jpeg")
+img <- c(logo, logo1)
+img <- image_scale(img, "300x300")
+image_append(image_scale(img, "x200"))
 
+# knitr::plot_crop("/Users/colinccm/Documents/GitHub/perso repo/Immunochemistry_picture/myplot1.png")
+# logo2 <- image_read("/Users/colinccm/Documents/GitHub/perso repo/Immunochemistry_picture/myplot1.png")
+# img <- c(logo2, logo1)
+# img <- image_scale(img, "300x300")
+# image_append(image_scale(img, "x200"))
