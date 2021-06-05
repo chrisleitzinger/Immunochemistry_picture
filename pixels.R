@@ -21,7 +21,7 @@ right_side <- as.imlist(right_side) %>% imappend("x")
 plot(right_side)
 imager::save.image(right_side, "right_side.jpeg")
 
-# 2. Store left side
+# 3. Store left side
 left_side <- split_img[1]
 as.imlist(left_side) %>% imappend("x") %>% plot
 left_side <- as.imlist(left_side) %>% imappend("x") 
@@ -29,7 +29,7 @@ imager::save.image(left_side, "left_side.jpeg")
 
 ###################
 
-# 1. Remove the background / need magick object
+# 4. Try to remove the background but didn't work as well
 # hoechst1 <- image_read("/Users/colinccm/Documents/GitHub/perso repo/Immunochemistry_picture/left_side.jpeg")
 # plot(hoechst1)
 # 
@@ -56,28 +56,30 @@ imager::save.image(left_side, "left_side.jpeg")
 
 ###################
 
-# 2. Get coordinate
+# 2. Get coordinates
 df <- as.data.frame(left_side)
-df_3 <- df %>% filter(cc == 3) %>%
+df_3 <- df %>% filter(cc == 3) %>% # select channel
   filter(value > 0.15) # filter threshold
-
-# df_3 %>% 
-#   ggplot(aes(x=x, y=y, color = value)) +
-#   geom_point(size = 0.3, aes(alpha = value)) +
-#   scale_y_reverse() + 
-#   theme_void() +
-#   theme(legend.position = "none") +
-#   scale_color_continuous(trans = "reverse")
 
 df_3 %>% 
   ggplot(aes(x=x, y=y, color = value)) +
+  scale_color_gradient(low="navyblue", high="blue")+
   geom_point(size = 1, aes(alpha = value)) +
   scale_y_reverse() + 
   theme_void() +
-  theme(legend.position = "none",
-        panel.background = element_rect(fill = "lightblue"))
+  theme(legend.position = "none")
 
+dev.copy(png,'myplot.png')
+dev.off()
 
+gradient <- expand.grid(x=300:max(df_3$x), y=-min(df_3$y):max(df_3$y)) # dataframe for all combinations
+ggplot() +
+  geom_tile(data=gradient, aes(x, y, fill=x)) + 
+  geom_point(data=df_3, aes(x=x, y=y, color = value, alpha = value),size = 0.3) +
+  scale_fill_gradientn(colors = c("white", "white", "grey", "black")) +
+  scale_y_reverse() + 
+  theme_void() +
+  theme(legend.position = "none")
 dev.copy(png,'myplot.png')
 dev.off()
 
@@ -87,10 +89,7 @@ logo <- image_read("/Users/colinccm/Documents/GitHub/perso repo/Immunochemistry_
 logo1 <- image_read("/Users/colinccm/Documents/GitHub/perso repo/Immunochemistry_picture/right_side.jpeg")
 img <- c(logo, logo1)
 img <- image_scale(img, "300x300")
-image_append(image_scale(img, "x200"))
+image_append(image_scale(img, "x100"))
+full_image <- image_append(image_scale(img, "x200"))
 
-# knitr::plot_crop("/Users/colinccm/Documents/GitHub/perso repo/Immunochemistry_picture/myplot1.png")
-# logo2 <- image_read("/Users/colinccm/Documents/GitHub/perso repo/Immunochemistry_picture/myplot1.png")
-# img <- c(logo2, logo1)
-# img <- image_scale(img, "300x300")
-# image_append(image_scale(img, "x200"))
+image_write(full_image, "full_image.png")
